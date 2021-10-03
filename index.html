@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Language" content="en">
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VR</title>
+</head>
+<body>
+    <!--Shader Code-->
+    <script id="vertexShader" type="x-shader/x-vertex">
+        uniform vec3 viewVector;
+        uniform float base;
+        uniform float p;
+        varying float intensity;
+        void main() 
+        {
+            vec3 vNormal = normalize( normalMatrix * normal );
+            vec3 vNormel = normalize( normalMatrix * viewVector );
+            intensity = pow( base - dot(vNormal, vNormel), p );
+            
+            gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+        }
+    </script>    
+    <script id="fragmentShader" type="x-shader/x-vertex">
+        uniform vec3 glowColor;
+        varying float intensity;
+        void main() 
+        {
+            vec3 glow = glowColor * intensity;
+            gl_FragColor = vec4( glow, 1.0 );
+        }
+    </script>
+    <!--Main Script-->
+    <script src="./build/bundle.js"></script>
+</body>
+</html>

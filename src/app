@@ -1,0 +1,245 @@
+import * as THREE from 'three';
+import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
+//import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { BackSide } from 'three';
+import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import { VRButton } from 'three/examples/jsm/webxr/VRButton.js';
+
+//scene
+let camera, scene, renderer, capObj;
+
+//params
+let params = {
+	sceneWidth: 1200,
+	sceneHeight: 800,
+	cameraAngle: 0
+}
+let mouse = {
+	isDown: false,
+	xStart: 0,
+	yStart: 0,
+}
+
+let objectsParams = {
+	modelPath: './assets/models/',
+};
+
+class App {
+	init() {
+		let canvas = document.getElementById('canvas');
+		canvas.setAttribute('width', 	params.sceneWidth);
+		canvas.setAttribute('height', 	params.sceneHeight);
+		
+		//scene and camera
+		scene = new THREE.Scene();
+		scene.background = new THREE.Color(0xffffff);
+		camera = new THREE.PerspectiveCamera(40.0, params.sceneWidth / params.sceneHeight, 0.1, 5000);
+		camera.position.set(0, 0, 0);
+		camera.rotation.set(-Math.PI * 0.52, 0, 0)
+		//camera.lookAt(0, 0, -5);
+
+		//controls = new OrbitControls( camera, canvas);
+
+		//light
+		const light = new THREE.AmbientLight(0xffffff);
+		const plight = new THREE.DirectionalLight(0xffffff, 0.5);
+		scene.add(light); scene.add(plight);
+		
+		const roomGeometry = new THREE.BoxGeometry( 40, 30, 20 );
+		let textureLoader = new THREE.TextureLoader();
+		const upMaterial = new THREE.MeshBasicMaterial( {side: BackSide,
+			map: textureLoader.load('./assets/models/stena.jpg', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		const wallMaterial = new THREE.MeshBasicMaterial( {side: BackSide,
+			map: textureLoader.load('./assets/models/walls.jpg', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		const badMaterial = new THREE.MeshBasicMaterial( {side: BackSide,
+			map: textureLoader.load('./assets/models/1.jpg', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		let room = new THREE.Mesh( roomGeometry, [wallMaterial, wallMaterial, wallMaterial, badMaterial, wallMaterial, upMaterial] );
+		room.rotation.set(0, Math.PI, 0)
+		scene.add( room );
+
+		//door
+		const doorGeometry = new THREE.PlaneGeometry(8, 17);
+		const doorMaterial = new THREE.MeshBasicMaterial( {side: BackSide,
+			map: textureLoader.load('./assets/models/door.jpg', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+			side: THREE.FrontSide
+		} );
+		let door = new THREE.Mesh(doorGeometry, doorMaterial);
+		door.rotation.set(Math.PI * 0.5, Math.PI * 0.5, 0.0);
+		door.position.set(-19.8, -2, 2);
+		scene.add(door)
+
+		//obj 
+		let personObj = new THREE.Object3D();
+		let mtlLoader = new MTLLoader();
+		mtlLoader.setPath(objectsParams.modelPath);
+		mtlLoader.load('Body.mtl', function (materials) {
+			materials.preload();
+			let objLoader = new OBJLoader();
+			objLoader.setMaterials(materials);
+			objLoader.setPath(objectsParams.modelPath);
+			objLoader.load('Body.obj', function (object) {
+				object.scale.set(0.25, 0.25, 0.25)
+				personObj.add(object);
+			});
+		});
+
+		personObj.position.set(0.0, -10.0, 3);
+		personObj.rotation.set(0.0, 0.0, Math.PI);
+		scene.add(personObj);
+
+		//light bulb
+		let fbxLoader = new FBXLoader();
+		fbxLoader.setPath(objectsParams.modelPath);
+		fbxLoader.load(
+			'LightBulb_01.fbx',
+			(object) => {
+				object.scale.set(0.27, 0.27, 0.27);
+					object.position.set(0, -10, -6.2);
+				object.rotation.set(Math.PI * 0.5, 0, 0)
+				scene.add(object);
+			}
+		)
+
+		//cap
+		capObj = new THREE.Object3D();
+		fbxLoader = new FBXLoader();
+		fbxLoader.setPath(objectsParams.modelPath);
+		fbxLoader.load(
+			'Cap.fbx',
+			(object) => {
+				object.scale.set(0.0032, 0.0032, 0.0032);
+				object.position.set(-4.0, -10, -3.0); //0.15, -10, -3.42
+				object.rotation.set(-Math.PI * 0.2, 0, Math.PI * 0.0); //-Math.PI * 0.5, 0, Math.PI * 0.0
+				capObj.add(object)
+				scene.add(object);
+			}
+		)
+
+		//info
+		const infoGeometry = new THREE.PlaneGeometry(25, 15);
+		const infoMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/popup.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+			//side: THREE.BackSide
+		} );
+		let info = new THREE.Mesh(infoGeometry, infoMaterial);
+		info.rotation.set(-Math.PI * 0.5, -Math.PI * 0.0, 0.0);
+		info.position.set(5.0, -12, -4);
+		info.scale.set(0.25, 0.25, 0.25)
+		scene.add(info)
+
+		const btnGeometry = new THREE.PlaneGeometry(6, 2);
+		const btnYesMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/yes.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		const btnNoMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/no.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		let btnYes = new THREE.Mesh(btnGeometry, btnYesMaterial);
+		let btnNo = new THREE.Mesh( btnGeometry, btnNoMaterial);
+		btnYes.rotation.set(-Math.PI * 0.5, -Math.PI * 0.0, 0.0); btnNo.rotation.set(-Math.PI * 0.5, -Math.PI * 0.0, 0.0);
+		btnYes.position.set(4.0, -11.8, -3);	btnNo.position.set(6.0, -11.8, -3);
+		btnYes.scale.set(0.25, 0.25, 0.25); btnNo.scale.set(0.25, 0.25, 0.25);
+		scene.add(btnYes);					scene.add(btnNo);
+	
+
+		//renderer
+		/*
+		renderer = new THREE.WebGLRenderer({ canvas: canvas, alpha: true, antialias: true });
+		renderer.setClearColor(0xffffff);
+
+		document.body.appendChild( renderer.domElement );
+		document.body.appendChild( VRButton.createButton( renderer ) );
+
+		renderer.xr.enabled = true;
+		
+		renderer.render(scene, camera);*/
+		renderer = new THREE.WebGLRenderer( { antialias: true } );
+		renderer.setPixelRatio( window.devicePixelRatio );
+		renderer.setSize( window.innerWidth, window.innerHeight );
+		renderer.outputEncoding = THREE.sRGBEncoding;
+		renderer.xr.enabled = true;
+		document.body.appendChild( renderer.domElement );
+		document.body.appendChild( VRButton.createButton( renderer ) );
+
+		canvas.addEventListener('mousemove', onMouseMove, false);
+		canvas.addEventListener('mousedown', onMouseDown, false);
+		canvas.addEventListener('mouseup', onMouseUp, false);
+		
+		canvas.addEventListener("touchstart",   touch_start_handler);
+    	canvas.addEventListener("touchmove",    touch_move_handler);    
+    	canvas.addEventListener("touchend",     touch_up_handler);
+
+		animate();
+	}
+}
+
+function onMouseDown(e) {
+	mouse.isDown = true;
+	mouse.xStart = e.x;
+	mouse.yStart = e.y;
+}
+
+function onMouseUp() {
+	mouse.isDown = false;
+}
+
+function onMouseMove(e) {
+	if (mouse.isDown) {
+		camera.rotation.y = 2.0 * Math.PI * (mouse.xStart - e.x) / params.sceneWidth;
+		camera.rotation.x = -Math.PI * 0.52 + Math.PI * (mouse.yStart - e.y) / params.sceneHeight;
+	}
+}
+
+function animate() {
+	//controls.update();
+	//requestAnimationFrame(animate);
+	renderer.setAnimationLoop( renderer.render );
+}
+/*
+renderer.setAnimationLoop( function () {
+	renderer.render( scene, camera );
+} );*/
+
+function touch_start_handler(e) {
+	let evt = (typeof e.originalEvent === 'undefined') ? e : e.originalEvent;
+	let touch = evt.touches[0] || evt.changedTouches[0];
+	//parseInt(touch.pageX) parseInt(touch.pageY) 
+	
+}
+
+function touch_move_handler(e) {
+	let evt = (typeof e.originalEvent === 'undefined') ? e : e.originalEvent;
+	let touch = evt.touches[0] || evt.changedTouches[0];
+}
+
+function touch_up_handler(e) {
+	let evt = (typeof e.originalEvent === 'undefined') ? e : e.originalEvent;
+	let touch = evt.touches[0] || evt.changedTouches[0];
+}
+
+function render() {
+	renderer.render( scene, camera );
+}
+
+export default App;
