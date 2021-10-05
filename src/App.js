@@ -31,10 +31,12 @@ class App {
 	init() {
 		scene = new THREE.Scene();
 		scene.background = new THREE.Color( 0x505050 );
-		camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 10 );
+		camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
 		camera.position.set( 0, 0, 0 );
 
+		let textureLoader = new THREE.TextureLoader();
 		//room
+		/*
 		const roomGeometry = new THREE.BoxGeometry( 6, 3, 6 );
 		let textureLoader = new THREE.TextureLoader();
 		const upMaterial = new THREE.MeshBasicMaterial( {side: THREE.BackSide,
@@ -52,13 +54,31 @@ class App {
 				texture.minFilter = THREE.LinearFilter;
 			}),
 		} );
+		
 		//r l u b back front
 		let room = new THREE.Mesh( roomGeometry, [wallMaterial, wallMaterial, upMaterial, upMaterial, wallMaterial, badMaterial] );
 		room.position.set(0, 2.0, 0)
 		scene.add( room );
+		*/
+
+		//room
+		let roomObj = new THREE.Object3D();
+		let fbxLoader = new FBXLoader();
+		fbxLoader.setPath(objectsParams.modelPath);
+		fbxLoader.load(
+			'VR_Room_Test_01.fbx',
+			(object) => {
+				object.name = 'Room';
+				roomObj.add(object)
+			}
+		)
+		roomObj.scale.set(0.08, 0.08, 0.08);
+		roomObj.position.set(-3.0, 0, 0); 
+		//roomObj.rotation.set(2, -Math.PI, 0.0); //-Math.PI * 0.5, 0, Math.PI * 0.0
+		roomObj.name = 'Room';
+		scene.add(roomObj);
 
 		scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
-
 		const light = new THREE.DirectionalLight( 0xffffff );
 		light.position.set( 1, 1, 1 ).normalize();
 		scene.add( light );
@@ -73,17 +93,18 @@ class App {
 			objLoader.setMaterials(materials);
 			objLoader.setPath(objectsParams.modelPath);
 			objLoader.load('Body.obj', function (object) {
-				object.scale.set(0.035, 0.035, 0.035)
 				personObj.add(object);
 			});
 		});
 
-		personObj.position.set(0.0, 1.4, -2);
-		personObj.rotation.set(Math.PI * 0.5, 0, Math.PI);
+		personObj.position.set(0.0, 1.4, -3);
+		personObj.scale.set(0.05, 0.05, 0.05);
+		personObj.rotation.set(Math.PI * 0.5, 0, 0);
 		personObj.name = 'Body';
 		scene.add(personObj);
 
 		//door
+		/*
 		const doorGeometry = new THREE.BoxGeometry(8, 17, 0.01);
 		const doorMaterial = new THREE.MeshBasicMaterial( {
 			map: textureLoader.load('./assets/models/door.jpg', function (texture) {
@@ -96,26 +117,10 @@ class App {
 		door.position.set(-2.95, 1.8, -2);
 		door.scale.set(0.2, 0.15, 0.2);
 		door.name = 'Door';
-		scene.add(door)
-
-		//light bulb
-		let lumpObj = new THREE.Object3D(); 
-		let fbxLoader = new FBXLoader();
-		fbxLoader.setPath(objectsParams.modelPath);
-		fbxLoader.load(
-			'LightBulb_01.fbx',
-			(object) => {
-				object.name = 'Lump';
-				lumpObj.add(object);
-			}
-		)
-		lumpObj.scale.set(0.05, 0.05, 0.05);
-		lumpObj.position.set(0.0, 3.3, -2.6);
-		lumpObj.rotation.set(Math.PI, 0, 0);
-		lumpObj.name = 'Lump';
-		scene.add(lumpObj);
+		scene.add(door)*/
 
 		//cap
+		/*
 		capObj = new THREE.Object3D();
 		fbxLoader = new FBXLoader();
 		fbxLoader.setPath(objectsParams.modelPath);
@@ -130,7 +135,7 @@ class App {
 		capObj.position.set(-1.26, 2.6, -2.6); //0.15, -10, -3.42
 		capObj.rotation.set(2, -Math.PI, 0.0); //-Math.PI * 0.5, 0, Math.PI * 0.0
 		capObj.name = 'Cap';
-		scene.add(capObj);
+		scene.add(capObj);*/
 
 		//info
 		const infoGeometry = new THREE.BoxGeometry(25, 15, 0.01);
