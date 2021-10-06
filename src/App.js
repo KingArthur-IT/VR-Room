@@ -9,19 +9,11 @@ let camera, scene, renderer;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 let pickHelper;
-
-let room;
-let objectsNameList = ['Body', 'Door', 'Lump', 'Cap', 'Yes', 'No',
-	'Sphere', 'Cap_1_2', 'lw_poly_bulb']; //, 
-let lastChooseObj, lastColor;
 let capObj;
 
-let count = 0;
-const radius = 0.08;
-let normal = new THREE.Vector3();
-const relativeVelocity = new THREE.Vector3();
-
-const clock = new THREE.Clock();
+let objectsNameList = ['Body', 'Yes', 'No'];  
+let movableObjectsNameList = ['Cap_Mesh.007'];
+let lastChooseObj = [undefined, undefined], lastColor = [undefined, undefined];
 
 let objectsParams = {
 	modelPath: './assets/models/',
@@ -34,32 +26,10 @@ class App {
 		camera = new THREE.PerspectiveCamera( 50, window.innerWidth / window.innerHeight, 0.1, 1000 );
 		camera.position.set( 0, 0, 0 );
 
-		let textureLoader = new THREE.TextureLoader();
-		//room
-		/*
-		const roomGeometry = new THREE.BoxGeometry( 6, 3, 6 );
-		let textureLoader = new THREE.TextureLoader();
-		const upMaterial = new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-			map: textureLoader.load('./assets/models/stena.jpg', function (texture) {
-				texture.minFilter = THREE.LinearFilter;
-			}),
-		} );
-		const wallMaterial = new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-			map: textureLoader.load('./assets/models/walls.jpg', function (texture) {
-				texture.minFilter = THREE.LinearFilter;
-			}),
-		} );
-		const badMaterial = new THREE.MeshBasicMaterial( {side: THREE.BackSide,
-			map: textureLoader.load('./assets/models/1.jpg', function (texture) {
-				texture.minFilter = THREE.LinearFilter;
-			}),
-		} );
-		
-		//r l u b back front
-		let room = new THREE.Mesh( roomGeometry, [wallMaterial, wallMaterial, upMaterial, upMaterial, wallMaterial, badMaterial] );
-		room.position.set(0, 2.0, 0)
-		scene.add( room );
-		*/
+		scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
+		const light = new THREE.DirectionalLight( 0xffffff );
+		light.position.set( 1, 1, 1 ).normalize();
+		scene.add( light );
 
 		//room
 		let roomObj = new THREE.Object3D();
@@ -74,16 +44,10 @@ class App {
 		)
 		roomObj.scale.set(0.08, 0.08, 0.08);
 		roomObj.position.set(-3.0, 0, 0); 
-		//roomObj.rotation.set(2, -Math.PI, 0.0); //-Math.PI * 0.5, 0, Math.PI * 0.0
 		roomObj.name = 'Room';
 		scene.add(roomObj);
-
-		scene.add( new THREE.HemisphereLight( 0x606060, 0x404040 ) );
-		const light = new THREE.DirectionalLight( 0xffffff );
-		light.position.set( 1, 1, 1 ).normalize();
-		scene.add( light );
-
-		//obj 
+		
+		//patient
 		let personObj = new THREE.Object3D();
 		let mtlLoader = new MTLLoader();
 		mtlLoader.setPath(objectsParams.modelPath);
@@ -96,63 +60,48 @@ class App {
 				personObj.add(object);
 			});
 		});
-
 		personObj.position.set(0.0, 1.4, -3);
 		personObj.scale.set(0.05, 0.05, 0.05);
 		personObj.rotation.set(Math.PI * 0.5, 0, 0);
 		personObj.name = 'Body';
 		scene.add(personObj);
 
-		//door
-		/*
-		const doorGeometry = new THREE.BoxGeometry(8, 17, 0.01);
-		const doorMaterial = new THREE.MeshBasicMaterial( {
-			map: textureLoader.load('./assets/models/door.jpg', function (texture) {
-                texture.minFilter = THREE.LinearFilter;
-            }),
-			side: THREE.FrontSide
-		} );
-		let door = new THREE.Mesh(doorGeometry, doorMaterial);
-		door.rotation.set(0, Math.PI * 0.5, 0.0);
-		door.position.set(-2.95, 1.8, -2);
-		door.scale.set(0.2, 0.15, 0.2);
-		door.name = 'Door';
-		scene.add(door)*/
-
 		//cap
-		/*
 		capObj = new THREE.Object3D();
-		fbxLoader = new FBXLoader();
-		fbxLoader.setPath(objectsParams.modelPath);
-		fbxLoader.load(
-			'Cap.fbx',
-			(object) => {
-				object.name = 'Cap';
-				capObj.add(object)
-			}
-		)
-		capObj.scale.set(0.001, 0.001, 0.001);
-		capObj.position.set(-1.26, 2.6, -2.6); //0.15, -10, -3.42
-		capObj.rotation.set(2, -Math.PI, 0.0); //-Math.PI * 0.5, 0, Math.PI * 0.0
+		mtlLoader = new MTLLoader();
+		mtlLoader.setPath(objectsParams.modelPath);
+		mtlLoader.load('Cap.mtl', function (materials) {
+			materials.preload();
+			let objLoader = new OBJLoader();
+			objLoader.setMaterials(materials);
+			objLoader.setPath(objectsParams.modelPath);
+			objLoader.load('Cap.obj', function (object) {
+				capObj.add(object);
+			});
+		});
+		capObj.position.set(-2, 0.19, -3);
+		capObj.scale.set(0.05, 0.05, 0.05);
+		capObj.rotation.set(0.14, 0, 0);
 		capObj.name = 'Cap';
-		scene.add(capObj);*/
+		scene.add(capObj);
 
 		//info
+		let textureLoader = new THREE.TextureLoader();
 		const infoGeometry = new THREE.BoxGeometry(25, 15, 0.01);
 		const infoMaterial = new THREE.MeshBasicMaterial( { 
 			transparent: true,
 			map: textureLoader.load('./assets/img/popup.png', function (texture) {
                 texture.minFilter = THREE.LinearFilter;
             }),
-			//side: THREE.BackSide
 		} );
 		let info = new THREE.Mesh(infoGeometry, infoMaterial);
-		info.rotation.set(0, -0.15, 0.0);
-		info.position.set(2, 2.3, -2.6);
+		info.rotation.set(0, 0, 0.0);
+		info.position.set(1.7, 2.5, -2.6);
 		info.scale.set(0.08, 0.08, 0.08)
+		info.name = 'Info';
 		scene.add(info)
-
-		const btnGeometry = new THREE.BoxGeometry(6, 2, 0.01);
+		//info btns
+		const btnGeometry = new THREE.BoxGeometry(6, 2, 0.05);
 		const btnYesMaterial = new THREE.MeshBasicMaterial( { 
 			transparent: true,
 			map: textureLoader.load('./assets/img/yes.png', function (texture) {
@@ -167,8 +116,8 @@ class App {
 		} );
 		let btnYes = new THREE.Mesh(btnGeometry, btnYesMaterial);
 		let btnNo = new THREE.Mesh( btnGeometry, btnNoMaterial);
-		btnYes.rotation.set(0, -Math.PI * 0.0, 0.0); btnNo.rotation.set(0, -Math.PI * 0.0, 0.0);
-		btnYes.position.set(1.5, 2, -2.8);	btnNo.position.set(2.3, 2, -2.6);
+		btnYes.rotation.set(0, 0, 0.0); btnNo.rotation.set(0, 0, 0.0);
+		btnYes.position.set(1.2, 2.4, -2.5);	btnNo.position.set(2.2, 2.42, -2.5);
 		btnYes.scale.set(0.08, 0.08, 0.08); btnNo.scale.set(0.08, 0.08, 0.08);
 		btnYes.name = 'Yes'; btnNo.name = 'No';
 		scene.add(btnYes);					scene.add(btnNo);
@@ -229,36 +178,10 @@ class App {
 		controllerGrip2.add( controllerModelFactory.createControllerModel( controllerGrip2 ) );
 		scene.add( controllerGrip2 );
 
-
 		window.addEventListener( 'resize', onWindowResize );
 
-		const controllerToSelection = new Map();
 		pickHelper = new ControllerPickHelper(scene);
-/*
-		pickHelper.addEventListener('selectstart', (event) => {
-			console.log('click')
-			//pickHelper.update(scene);
-			const {controller, selectedObject} = event;
-			const existingSelection = controllerToSelection.get(controller);
-			if (!existingSelection) {
-				controllerToSelection.set(controller, {
-				object: selectedObject,
-				parent: selectedObject.parent,
-				});
-				controller.attach(selectedObject);
-			}
-			console.log(selectedObject)
-		});
 
-		pickHelper.addEventListener('selectend', (event) => {
-			const {controller} = event;
-			const selection = controllerToSelection.get(controller);
-			if (selection) {
-				controllerToSelection.delete(controller);
-				selection.parent.attach(selection.object);
-			}
-		});
-*/
 		animate();
 	}
 }
@@ -278,6 +201,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 
       this.controllers = [];
 
+	  //startClick
       const selectListener = (event) => {
         const controller = event.target;
         const selectedObject = this.controllerToObjectMap.get(event.target);
@@ -285,12 +209,51 @@ class ControllerPickHelper extends THREE.EventDispatcher {
           this.dispatchEvent({type: event.type, controller, selectedObject});
         }
 		console.log('click', event)
-		pickHelper.putOn(scene);
+
+		this.tempMatrix.identity().extractRotation(controller.matrixWorld);
+        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
+        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
+
+        const intersections = this.raycaster.intersectObjects(scene.children);
+		console.log(intersections)
+		let targerObj;
+		intersections.forEach(intersect => {
+			if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color				
+				movableObjectsNameList.forEach(el => {
+					if (intersect.object.name == el){
+						targerObj = intersect.object;
+						targerObj.material.emissive.b = 1;
+					}
+				});
+			}
+		});
+		if (targerObj != undefined) {
+				controller.attach(targerObj);
+				controller.userData.selected = targerObj;
+			}
+		//pickHelper.putOn(scene);
+		//pickHelper.update(scene);
+
       };
 
+	  //endClick
       const endListener = (event) => {
         const controller = event.target;
         this.dispatchEvent({type: event.type, controller});
+		
+		if (controller.userData.selected != undefined){
+			let object = controller.userData.selected;
+			controller.remove(controller.children[2]);
+			object.material.emissive.b = 0;
+			scene.attach(object);
+
+			
+			//object.material.emissive.setHex(0);
+			//scene.remove(capObj);
+			//capObj = object;
+			//scene.add(capObj);
+			controller.userData.selected = undefined;
+		}
       };
 
       for (let i = 0; i < 2; ++i) {
@@ -306,6 +269,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
         this.controllers.push({controller, line});
       }
     }
+	//reset
     reset() {
       // restore the colors
       this.objectToColorMap.forEach((color, object) => {
@@ -314,9 +278,11 @@ class ControllerPickHelper extends THREE.EventDispatcher {
       this.objectToColorMap.clear();
       this.controllerToObjectMap.clear();
     }
+	//update
     update(scene) {
       this.reset();
-	  let isChoose = false;
+	  let isChoose = [false, false];
+	  let index = 0;
 
       for (const {controller, line} of this.controllers) {
         this.tempMatrix.identity().extractRotation(controller.matrixWorld);
@@ -324,36 +290,38 @@ class ControllerPickHelper extends THREE.EventDispatcher {
         this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
 
         const intersections = this.raycaster.intersectObjects(scene.children);
+		line.scale.z = 5;
 		
 		intersections.forEach(intersect => {
-			if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color
-				//line.scale.z = intersect.distance;				
+			if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color				
 				objectsNameList.forEach(el => {
 					if (intersect.object.name == el){
-						lastChooseObj = intersect.object;
-						isChoose = true;
+						lastChooseObj[index] = intersect.object;
+						isChoose[index] = true;
+						line.scale.z = intersect.distance;
 						if (intersect.object.material.emissive != undefined)
 							intersect.object.material.emissive.setHex(0xFF2000);
 						else {
-							lastColor = intersect.object.material.color.getHex();
+							lastColor[index] = intersect.object.material.color.getHex();
 							intersect.object.material.color.setHex(0xFF2000);
 						}
 					}
 				});
 			}
 		});
+		index++;
       }
 
-	  if (!isChoose && lastChooseObj != undefined){
-		if (lastColor == undefined)
-			lastChooseObj.material.emissive.setHex(0x000000);
-		else {
-			console.log('color=',lastColor)
-			lastChooseObj.material.color.setHex(0xffffff);
-			lastColor = undefined;
+	  for (index = 0; index < 2; index++)
+		if (!isChoose[index] && lastChooseObj[index] != undefined){
+			if (lastColor[index] == undefined)
+				lastChooseObj[index].material.emissive.setHex(0x000000);
+			else {
+				lastChooseObj[index].material.color.setHex(0xffffff);
+				lastColor[index] = undefined;
+			}
+			lastChooseObj[index] = undefined;
 		}
-		lastChooseObj = undefined;
-	}
     }
 	putOn(scene) {
 		this.reset();
@@ -387,7 +355,7 @@ function onWindowResize() {
 
 }
 
-function buildController( data ) {
+function buildController( data, name ) {
 	let geometry, material;
 	switch ( data.targetRayMode ) {
 		case 'tracked-pointer':
