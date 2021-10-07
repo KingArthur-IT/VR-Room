@@ -17,6 +17,9 @@ let lastChooseObj = [undefined, undefined], lastColor = [undefined, undefined];
 
 let objectsParams = {
 	modelPath: './assets/models/',
+	capStartPos: new THREE.Vector3(-2.0, 0.19, -3.0),
+	capEndPos: new THREE.Vector3(-0.03, 2.7, -2.85),
+	capStartAngle: new THREE.Vector3(0.14, 0, 0),
 };
 
 class App {
@@ -79,9 +82,9 @@ class App {
 				capObj.add(object);
 			});
 		});
-		capObj.position.set(-2, 0.19, -3);
-		capObj.scale.set(0.05, 0.05, 0.05);
-		capObj.rotation.set(0.14, 0, 0);
+		capObj.position.copy(objectsParams.capStartPos);
+		capObj.scale.set(0.055, 0.055, 0.055);
+		capObj.rotation.setFromVector3(objectsParams.capStartAngle);
 		capObj.name = 'Cap';
 		scene.add(capObj);
 
@@ -243,8 +246,20 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 		
 		if (controller.userData.selected != undefined){
 			let object = controller.userData.selected;
-			controller.remove(controller.children[2]);
+			let currentPosition = new THREE.Vector3();
+			currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
 			object.material.emissive.b = 0;
+			controller.remove(controller.children[2]);
+			let dist = Math.sqrt(
+				(currentPosition.x - objectsParams.capEndPos.x) * (currentPosition.x - objectsParams.capEndPos.x) + 
+				(currentPosition.y - objectsParams.capEndPos.y) * (currentPosition.y - objectsParams.capEndPos.y) + 
+				(currentPosition.z - objectsParams.capEndPos.z) * (currentPosition.z - objectsParams.capEndPos.z)
+			);
+			console.log('dist = ', dist)
+			if (dist > 0.7)
+				object.position.copy(objectsParams.capStartPos)
+			else object.position.copy(objectsParams.capEndPos);
+			object.rotation.setFromVector3(objectsParams.capStartAngle)
 			scene.attach(object);
 
 			
