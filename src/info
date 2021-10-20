@@ -1,0 +1,37 @@
+/*
+		let textureLoader = new THREE.TextureLoader();
+		const infoGeometry = new THREE.BoxGeometry(25, 15, 0.01);
+		const infoMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/popup.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		let info = new THREE.Mesh(infoGeometry, infoMaterial);
+		info.rotation.set(0, 0, 0.0);
+		info.position.set(1.7, 2.5, -2.6);
+		info.scale.set(0.08, 0.08, 0.08)
+		info.name = 'Info';
+		scene.add(info)
+		//info btns
+		const btnGeometry = new THREE.BoxGeometry(6, 2, 0.05);
+		const btnYesMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/yes.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		const btnNoMaterial = new THREE.MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/no.png', function (texture) {
+                texture.minFilter = THREE.LinearFilter;
+            }),
+		} );
+		let btnYes = new THREE.Mesh(btnGeometry, btnYesMaterial);
+		let btnNo = new THREE.Mesh( btnGeometry, btnNoMaterial);
+		btnYes.rotation.set(0, 0, 0.0); btnNo.rotation.set(0, 0, 0.0);
+		btnYes.position.set(1.2, 2.4, -2.5);	btnNo.position.set(2.2, 2.42, -2.5);
+		btnYes.scale.set(0.08, 0.08, 0.08); btnNo.scale.set(0.08, 0.08, 0.08);
+		btnYes.name = 'Yes'; btnNo.name = 'No';
+		scene.add(btnYes);					scene.add(btnNo);
+		console.log(btnYes)*/

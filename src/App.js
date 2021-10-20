@@ -11,15 +11,46 @@ let controllerGrip1, controllerGrip2;
 let pickHelper;
 let capObj;
 
-let objectsNameList = ['Body', 'Yes', 'No'];  
-let movableObjectsNameList = ['Cap_Mesh.007'];
-let lastChooseObj = [undefined, undefined], lastColor = [undefined, undefined];
+let hoverObjectsList = ['Ok', 'Close'];  
+let lastChooseObj = [undefined, undefined];
 
 let objectsParams = {
 	modelPath: './assets/models/',
-	capStartPos: new THREE.Vector3(-2.0, 0.19, -3.0),
-	capEndPos: new THREE.Vector3(-0.03, 2.7, -2.85),
-	capStartAngle: new THREE.Vector3(0.14, 0, 0),
+	body: {
+		fileName: 'Physician_01',
+		objName: 'Body',
+		position: new THREE.Vector3(-1.3, 0.0, -2.0),
+		rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+		scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
+	},
+	interactiveObjectList: [
+		{
+			fileName: 'gown_01',
+			objName: 'Robe',
+			StartPosition: new THREE.Vector3(-3.5, 0.5, -4.0),
+			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
+			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
+		},
+		{
+			fileName: 'glasses_01',
+			objName: 'Glasses',
+			StartPosition: new THREE.Vector3(1.0, -1.2, -3.3),
+			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
+			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
+		},
+		{
+			fileName: 'Mask_01',
+			objName: 'Mask',
+			StartPosition: new THREE.Vector3(-0.15, 1.05, -4.4),
+			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
+			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
+		},
+	],	
+	availableObjectIndex: -1, //-1 is for body
+	isPopupShown: false
 };
 
 class App {
@@ -49,82 +80,27 @@ class App {
 		roomObj.position.set(-3.0, 0, 0); 
 		roomObj.name = 'Room';
 		scene.add(roomObj);
-		
+			
 		//patient
-		let personObj = new THREE.Object3D();
-		let mtlLoader = new MTLLoader();
-		mtlLoader.setPath(objectsParams.modelPath);
-		mtlLoader.load('Body.mtl', function (materials) {
-			materials.preload();
-			let objLoader = new OBJLoader();
-			objLoader.setMaterials(materials);
-			objLoader.setPath(objectsParams.modelPath);
-			objLoader.load('Body.obj', function (object) {
-				personObj.add(object);
-			});
+		let bodyObject = addObject(	objectsParams.body.fileName, 
+									objectsParams.body.position,
+									objectsParams.body.rotation,
+									objectsParams.body.scale,
+									objectsParams.body.objName
+								);
+		setTimeout(() => {
+			console.log(bodyObject.children[0])
+		}, 2000);
+		
+		//interactive elements
+		objectsParams.interactiveObjectList.forEach(element => {
+			addObject(	element.fileName, 
+						element.StartPosition,
+						element.rotation,
+						element.scale,
+						element.objName
+			);
 		});
-		personObj.position.set(0.0, 1.4, -3);
-		personObj.scale.set(0.05, 0.05, 0.05);
-		personObj.rotation.set(Math.PI * 0.5, 0, 0);
-		personObj.name = 'Body';
-		scene.add(personObj);
-
-		//cap
-		capObj = new THREE.Object3D();
-		mtlLoader = new MTLLoader();
-		mtlLoader.setPath(objectsParams.modelPath);
-		mtlLoader.load('Cap.mtl', function (materials) {
-			materials.preload();
-			let objLoader = new OBJLoader();
-			objLoader.setMaterials(materials);
-			objLoader.setPath(objectsParams.modelPath);
-			objLoader.load('Cap.obj', function (object) {
-				capObj.add(object);
-			});
-		});
-		capObj.position.copy(objectsParams.capStartPos);
-		capObj.scale.set(0.055, 0.055, 0.055);
-		capObj.rotation.setFromVector3(objectsParams.capStartAngle);
-		capObj.name = 'Cap';
-		scene.add(capObj);
-
-		//info
-		let textureLoader = new THREE.TextureLoader();
-		const infoGeometry = new THREE.BoxGeometry(25, 15, 0.01);
-		const infoMaterial = new THREE.MeshBasicMaterial( { 
-			transparent: true,
-			map: textureLoader.load('./assets/img/popup.png', function (texture) {
-                texture.minFilter = THREE.LinearFilter;
-            }),
-		} );
-		let info = new THREE.Mesh(infoGeometry, infoMaterial);
-		info.rotation.set(0, 0, 0.0);
-		info.position.set(1.7, 2.5, -2.6);
-		info.scale.set(0.08, 0.08, 0.08)
-		info.name = 'Info';
-		scene.add(info)
-		//info btns
-		const btnGeometry = new THREE.BoxGeometry(6, 2, 0.05);
-		const btnYesMaterial = new THREE.MeshBasicMaterial( { 
-			transparent: true,
-			map: textureLoader.load('./assets/img/yes.png', function (texture) {
-                texture.minFilter = THREE.LinearFilter;
-            }),
-		} );
-		const btnNoMaterial = new THREE.MeshBasicMaterial( { 
-			transparent: true,
-			map: textureLoader.load('./assets/img/no.png', function (texture) {
-                texture.minFilter = THREE.LinearFilter;
-            }),
-		} );
-		let btnYes = new THREE.Mesh(btnGeometry, btnYesMaterial);
-		let btnNo = new THREE.Mesh( btnGeometry, btnNoMaterial);
-		btnYes.rotation.set(0, 0, 0.0); btnNo.rotation.set(0, 0, 0.0);
-		btnYes.position.set(1.2, 2.4, -2.5);	btnNo.position.set(2.2, 2.42, -2.5);
-		btnYes.scale.set(0.08, 0.08, 0.08); btnNo.scale.set(0.08, 0.08, 0.08);
-		btnYes.name = 'Yes'; btnNo.name = 'No';
-		scene.add(btnYes);					scene.add(btnNo);
-		console.log(btnYes)
 
 		//render
 		renderer = new THREE.WebGLRenderer( { antialias: true } );
@@ -204,7 +180,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 
       this.controllers = [];
 
-	  //startClick
+	  //--- startClick ----
       const selectListener = (event) => {
         const controller = event.target;
         const selectedObject = this.controllerToObjectMap.get(event.target);
@@ -217,17 +193,35 @@ class ControllerPickHelper extends THREE.EventDispatcher {
         this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
         this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
 
-        const intersections = this.raycaster.intersectObjects(scene.children);
+		//find intersects
+        const intersections = this.raycaster.intersectObjects(scene.children, true);
 		console.log(intersections)
 		let targerObj;
 		intersections.forEach(intersect => {
-			if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color				
+			if (intersect != undefined && intersect.object.type == 'Mesh') { 
+				//is click on body
+				if (intersect.object.parent != undefined)
+					if (intersect.object.parent.name == objectsParams.body.objName && 
+						objectsParams.availableObjectIndex == -1 &&
+						!objectsParams.isPopupShown){
+							//show popup
+							showInroPopup();
+							objectsParams.isPopupShown = true;
+						}
+				//close popup
+				if (intersect.object.name == 'Ok' || intersect.object.name == 'Close'){
+					removeIntroPopup();
+				}
+				/*
 				movableObjectsNameList.forEach(el => {
-					if (intersect.object.name == el){
-						targerObj = intersect.object;
-						targerObj.material.emissive.b = 1;
+					if (intersect.object.parent.name == el){
+						targerObj = intersect.object.parent;
+						targerObj.children.forEach(element => {
+							element.material.emissive.b = 1;
+						});
 					}
 				});
+				*/
 			}
 		});
 		if (targerObj != undefined) {
@@ -236,10 +230,10 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 			}
 		//pickHelper.putOn(scene);
 		//pickHelper.update(scene);
-
       };
+	  //--- end of start click
 
-	  //endClick
+	  //------- endClick -------------
       const endListener = (event) => {
         const controller = event.target;
         this.dispatchEvent({type: event.type, controller});
@@ -248,8 +242,9 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 			let object = controller.userData.selected;
 			let currentPosition = new THREE.Vector3();
 			currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
-			object.material.emissive.b = 0;
+			//object.material.emissive.b = 0;
 			controller.remove(controller.children[2]);
+			/*
 			let dist = Math.sqrt(
 				(currentPosition.x - objectsParams.capEndPos.x) * (currentPosition.x - objectsParams.capEndPos.x) + 
 				(currentPosition.y - objectsParams.capEndPos.y) * (currentPosition.y - objectsParams.capEndPos.y) + 
@@ -261,7 +256,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 			else object.position.copy(objectsParams.capEndPos);
 			object.rotation.setFromVector3(objectsParams.capStartAngle)
 			scene.attach(object);
-
+*/
 			
 			//object.material.emissive.setHex(0);
 			//scene.remove(capObj);
@@ -270,6 +265,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 			controller.userData.selected = undefined;
 		}
       };
+	  //------- end of endClick -------------
 
       for (let i = 0; i < 2; ++i) {
         const controller = renderer.xr.getController(i);
@@ -307,19 +303,15 @@ class ControllerPickHelper extends THREE.EventDispatcher {
         const intersections = this.raycaster.intersectObjects(scene.children);
 		line.scale.z = 5;
 		
+		//hover
 		intersections.forEach(intersect => {
-			if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color				
-				objectsNameList.forEach(el => {
+			if (intersect != undefined && intersect.object.type == 'Mesh') {		
+				hoverObjectsList.forEach(el => {
 					if (intersect.object.name == el){
 						lastChooseObj[index] = intersect.object;
 						isChoose[index] = true;
 						line.scale.z = intersect.distance;
-						if (intersect.object.material.emissive != undefined)
-							intersect.object.material.emissive.setHex(0xFF2000);
-						else {
-							lastColor[index] = intersect.object.material.color.getHex();
-							intersect.object.material.color.setHex(0xFF2000);
-						}
+						intersect.object.material.color.setHex(0xaaaaaa);
 					}
 				});
 			}
@@ -329,12 +321,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 
 	  for (index = 0; index < 2; index++)
 		if (!isChoose[index] && lastChooseObj[index] != undefined){
-			if (lastColor[index] == undefined)
-				lastChooseObj[index].material.emissive.setHex(0x000000);
-			else {
-				lastChooseObj[index].material.color.setHex(0xffffff);
-				lastColor[index] = undefined;
-			}
+			lastChooseObj[index].material.color.setHex(0xffffff);
 			lastChooseObj[index] = undefined;
 		}
     }
@@ -388,21 +375,99 @@ function buildController( data, name ) {
 			geometry = new THREE.RingGeometry( 0.02, 0.04, 32 ).translate( 0, 0, - 1 );
 			material = new THREE.MeshBasicMaterial( { opacity: 0.5, transparent: true } );
 			return new THREE.Mesh( geometry, material );
-
 	}
-
 }
 
-function animate() {
-	
+function animate() {	
 	renderer.setAnimationLoop( render );
 }
 
 function render() {
-
 	pickHelper.update(scene);
 	renderer.render( scene, camera );
+}
 
+function addObject(fileName, position, rotation, scale, objName){
+	let Obj = new THREE.Object3D();
+	let mtlLoader = new MTLLoader();
+	mtlLoader.setPath(objectsParams.modelPath);
+	mtlLoader.load(fileName + '.mtl', function (materials) {
+		materials.preload();
+		let objLoader = new OBJLoader();
+		objLoader.setMaterials(materials);
+		objLoader.setPath(objectsParams.modelPath);
+		objLoader.load(fileName + '.obj', function (object) {
+			object.name = objName;
+			Obj.add(object);
+			if (objName == objectsParams.body.objName)
+				object.children.forEach(element => {
+					element.material.emissive.b = 1;
+				});
+		});
+	});
+
+	Obj.position.copy(position);
+	Obj.scale.copy(scale);
+	Obj.rotation.setFromVector3(rotation);
+	Obj.name = objName;
+	scene.add(Obj);
+	return Obj;
+}
+
+function showInroPopup(){
+	let textureLoader = new THREE.TextureLoader();
+	const infoGeometry = new THREE.BoxGeometry(25, 20, 0.01);
+	const infoMaterial = new THREE.MeshBasicMaterial( { 
+		transparent: true,
+		map: textureLoader.load('./assets/img/popup.png', function (texture) {
+			texture.minFilter = THREE.LinearFilter;
+		}),
+	} );
+	let info = new THREE.Mesh(infoGeometry, infoMaterial);
+	info.rotation.set(0, 0, 0.0);
+	info.position.set(0.5, 2.3, -2.6);
+	info.scale.set(0.08, 0.08, 0.08);
+	info.name = 'Info';
+	scene.add(info)
+	//info btns
+	const btnOKGeometry = new THREE.BoxGeometry(6, 1.6, 0.05);
+	const btnCloseGeometry = new THREE.BoxGeometry(2, 2, 0.05);
+	const btnOkMaterial = new THREE.MeshBasicMaterial( { 
+		transparent: true,
+		map: textureLoader.load('./assets/img/ok.png', function (texture) {
+			texture.minFilter = THREE.LinearFilter;
+		}),
+	} );
+	const btnCloseMaterial = new THREE.MeshBasicMaterial( { 
+		transparent: true,
+		map: textureLoader.load('./assets/img/close.png', function (texture) {
+			texture.minFilter = THREE.LinearFilter;
+		}),
+	} );
+	let btnOk = new THREE.Mesh(btnOKGeometry, btnOkMaterial);
+	let btnClose = new THREE.Mesh( btnCloseGeometry, btnCloseMaterial);
+	btnOk.rotation.set(0, 0, 0.0); 			btnClose.rotation.set(0, 0, 0.0);
+	btnOk.position.set(0.5, 1.63, -2.5);	btnClose.position.set(1.35, 2.96, -2.5);
+	btnOk.scale.set(0.08, 0.08, 0.08); 		btnClose.scale.set(0.05, 0.05, 0.05);
+	btnOk.name = 'Ok'; 						btnClose.name = 'Close';
+	scene.add(btnOk); 						scene.add(btnClose);
+}
+
+function removeIntroPopup(){
+	scene.remove(scene.getObjectByName("Ok"));
+	scene.remove(scene.getObjectByName("Close"));
+	scene.remove(scene.getObjectByName("Info"));
+	
+	scene.getObjectByName("Body").children[0].children.forEach(element => {
+		element.material.emissive.b = 0;
+	});
+	objectsParams.availableObjectIndex = 0;
+	objectsParams.interactiveObjectList.forEach(element => {
+		let name = element.objName;
+		scene.getObjectByName(name).children[0].children.forEach(element => {
+			element.material.emissive.b = 1;
+		});
+	});
 }
 
 export default App;
