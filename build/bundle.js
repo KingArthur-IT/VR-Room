@@ -56405,16 +56405,16 @@
 			},
 			{
 				id: 1,
-				fileName: 'eye protection_01',
-				objName: 'Glasses',
-				position: new Vector3(1.0, -1.2, -3.3),
+				fileName: 'mask_01',
+				objName: 'Mask',
+				position: new Vector3(-0.15, 1.05, -4.4),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 			{
 				id: 2,
-				fileName: 'mask_01',
-				objName: 'Mask',
-				position: new Vector3(-0.15, 1.05, -4.4),
+				fileName: 'eye protection_01',
+				objName: 'Glasses',
+				position: new Vector3(1.0, -1.2, -3.3),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 			{
@@ -56426,7 +56426,8 @@
 			},
 		],	
 		availableObjectIndex: -1, //-1 is for body
-		isPopupShown: false
+		isPopupShown: false,
+		distanceOffset: 1.0
 	};
 
 	class App {
@@ -56456,7 +56457,7 @@
 			roomObj.position.set(-3.0, 0, 0); 
 			roomObj.name = 'Room';
 			scene.add(roomObj);
-						
+					
 			//patient
 			let bodyObject = addObject(	objectsParams.body.fileName, 
 										objectsParams.body.position,
@@ -56562,6 +56563,8 @@
 	          this.dispatchEvent({type: event.type, controller, selectedObject});
 	        }
 			console.log('click', event);
+			if (event.type != 'selectstart')
+				return;
 
 			this.tempMatrix.identity().extractRotation(controller.matrixWorld);
 	        this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
@@ -56569,13 +56572,13 @@
 
 			//find intersects
 	        const intersections = this.raycaster.intersectObjects(scene.children, true);
-			console.log(intersections);
+			//console.log(intersections)
 			let targerObj;
 			intersections.forEach(intersect => {
 				if (intersect != undefined && intersect.object.type == 'Mesh') { 
 					//close popup
 					if (intersect.object.name == 'Ok' || intersect.object.name == 'Close'){
-						removeIntroPopup();
+						removePopup();
 					}
 					
 					if (intersect.object.parent != undefined){
@@ -56598,6 +56601,9 @@
 										element.material.emissive.b = 0;
 									});
 								}
+								else {
+									showIncorrectPopup();								
+								}
 							}
 						});
 					}
@@ -56607,8 +56613,6 @@
 					controller.attach(targerObj);
 					controller.userData.selected = targerObj;
 				}
-			//pickHelper.putOn(scene);
-			//pickHelper.update(scene);
 	      };
 		  //--- end of start click
 
@@ -56629,17 +56633,16 @@
 					(currentPosition.y - objectsParams.body.position.y) * (currentPosition.y - objectsParams.body.position.y)
 				);
 				
-				if (dist > 1.0)
+				if (dist > objectsParams.distanceOffset)
 					object.position.copy(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex].position);
 				else {
 					object.position.copy(objectsParams.body.position);
-					objectsParams.availableObjectIndex++;
 				}
 				scene.attach(object);			
-				scene.remove(scene.getObjectByName(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex - 1].objName));
+				scene.remove(scene.getObjectByName(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex].objName));
 				let Obj = object;
 				Obj.rotation.x = Obj.rotation.y = Obj.rotation.z = 0;
-				if (dist <= 1.0 )
+				if (dist <= objectsParams.distanceOffset )
 					Obj.children[0].children.forEach(element => {
 						element.material.emissive.g = 0;
 						element.material.emissive.b = 0;
@@ -56651,6 +56654,13 @@
 					});
 				scene.add(Obj);
 				controller.userData.selected = undefined;
+
+				if (dist <= objectsParams.distanceOffset)
+					objectsParams.availableObjectIndex++;
+				if (objectsParams.availableObjectIndex == objectsParams.interactiveObjectList.length)
+					setTimeout(() => {
+						showSuccessPopup();
+					}, 1000);
 			}
 	      };
 		  //------- end of endClick -------------
@@ -56713,27 +56723,6 @@
 				lastChooseObj[index] = undefined;
 			}
 	    }
-		putOn(scene) {
-			this.reset();
-	  
-			for (const {controller, line} of this.controllers) {
-			  this.tempMatrix.identity().extractRotation(controller.matrixWorld);
-			  this.raycaster.ray.origin.setFromMatrixPosition(controller.matrixWorld);
-			  this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
-	  
-			  const intersections = this.raycaster.intersectObjects(scene.children);
-			  
-			  intersections.forEach(intersect => {
-				  if (intersect != undefined && intersect.object.type == 'Mesh' && intersect.object.material != undefined) { //emmisive or color
-					if (intersect.object.name == 'Sphere' || intersect.object.name == 'Cap_1_2'){
-						capObj.position.set(0.02, 2.29, -2.08); //0.15, -10, -3.42
-						capObj.rotation.set(Math.PI, 0, Math.PI); //-Math.PI * 0.5, 0, Math.PI * 0.0
-						capObj.scale.set(0.0004, 0.0004, 0.0004);
-					}
-				  }
-			  });
-			}
-		  }
 	  }
 
 	function onWindowResize() {
@@ -56806,7 +56795,7 @@
 		const infoGeometry = new BoxGeometry(25, 20, 0.01);
 		const infoMaterial = new MeshBasicMaterial( { 
 			transparent: true,
-			map: textureLoader.load('./assets/img/popup.png', function (texture) {
+			map: textureLoader.load('./assets/img/introPopup.png', function (texture) {
 				texture.minFilter = LinearFilter;
 			}),
 		} );
@@ -56839,8 +56828,46 @@
 		btnOk.name = 'Ok'; 						btnClose.name = 'Close';
 		scene.add(btnOk); 						scene.add(btnClose);
 	}
+	function showSuccessPopup(){
+		let textureLoader = new TextureLoader();
+		const infoGeometry = new BoxGeometry(25, 10, 0.01);
+		const infoMaterial = new MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/correctPopup.png', function (texture) {
+				texture.minFilter = LinearFilter;
+			}),
+		} );
+		let info = new Mesh(infoGeometry, infoMaterial);
+		info.rotation.set(0, 0, 0.0);
+		info.position.set(0.5, 2.5, -4.0);
+		info.scale.set(0.08, 0.08, 0.08);
+		info.name = 'Info';
+		scene.add(info);
+		//info btns
+		const btnOKGeometry = new BoxGeometry(6, 1.6, 0.05);
+		const btnCloseGeometry = new BoxGeometry(2, 2, 0.05);
+		const btnOkMaterial = new MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/ok.png', function (texture) {
+				texture.minFilter = LinearFilter;
+			}),
+		} );
+		const btnCloseMaterial = new MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/close.png', function (texture) {
+				texture.minFilter = LinearFilter;
+			}),
+		} );
+		let btnOk = new Mesh(btnOKGeometry, btnOkMaterial);
+		let btnClose = new Mesh( btnCloseGeometry, btnCloseMaterial);
+		btnOk.rotation.set(0, 0, 0.0); 			btnClose.rotation.set(0, 0, 0.0);
+		btnOk.position.set(0.5, 2.25, -4.0);	btnClose.position.set(1.35, 2.81, -4.0);
+		btnOk.scale.set(0.08, 0.08, 0.08); 		btnClose.scale.set(0.05, 0.05, 0.05);
+		btnOk.name = 'Ok'; 						btnClose.name = 'Close';
+		scene.add(btnOk); 						scene.add(btnClose);
+	}
 
-	function removeIntroPopup(){
+	function removePopup(){
 		scene.remove(scene.getObjectByName("Ok"));
 		scene.remove(scene.getObjectByName("Close"));
 		scene.remove(scene.getObjectByName("Info"));
@@ -56855,6 +56882,30 @@
 				element.material.emissive.b = 1;
 			});
 		});
+		objectsParams.interactiveObjectList.forEach(element => {
+			scene.getObjectByName(element.objName).position.copy(element.position);
+		});
+	}
+
+	function showIncorrectPopup(){
+		let textureLoader = new TextureLoader();
+		const infoGeometry = new BoxGeometry(25, 5, 0.01);
+		const infoMaterial = new MeshBasicMaterial( { 
+			transparent: true,
+			map: textureLoader.load('./assets/img/incorrectPopup.png', function (texture) {
+				texture.minFilter = LinearFilter;
+			}),
+		} );
+		let info = new Mesh(infoGeometry, infoMaterial);
+		info.rotation.set(0, 0, 0.0);
+		info.position.set(0.5, 2.8, -4.0);
+		info.scale.set(0.08, 0.08, 0.08);
+		info.name = 'Info';
+		scene.add(info);
+		
+		setTimeout(() => {
+			scene.remove(info);
+		}, 2000);
 	}
 
 	const app = new App();
