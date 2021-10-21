@@ -9,7 +9,6 @@ let camera, scene, renderer;
 let controller1, controller2;
 let controllerGrip1, controllerGrip2;
 let pickHelper;
-let capObj;
 
 let hoverObjectsList = ['Ok', 'Close'];  
 let lastChooseObj = [undefined, undefined];
@@ -25,27 +24,31 @@ let objectsParams = {
 	},
 	interactiveObjectList: [
 		{
+			id: 0,
 			fileName: 'gown_01',
 			objName: 'Robe',
-			StartPosition: new THREE.Vector3(-3.5, 0.5, -4.0),
-			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
-			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			position: new THREE.Vector3(-3.5, 0.5, -4.0),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 		{
-			fileName: 'glasses_01',
+			id: 1,
+			fileName: 'eye protection_01',
 			objName: 'Glasses',
-			StartPosition: new THREE.Vector3(1.0, -1.2, -3.3),
-			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
-			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			position: new THREE.Vector3(1.0, -1.2, -3.3),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 		{
-			fileName: 'Mask_01',
+			id: 2,
+			fileName: 'mask_01',
 			objName: 'Mask',
-			StartPosition: new THREE.Vector3(-0.15, 1.05, -4.4),
-			EndPosition: new THREE.Vector3(-1.3, 0.0, -2.0),
-			rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
+			position: new THREE.Vector3(-0.15, 1.05, -4.4),
+			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
+		},
+		{
+			id: 3,
+			fileName: 'gloves_01',
+			objName: 'Gloves',
+			position: new THREE.Vector3(-2.1, 2.0, -4.0),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 	],	
@@ -80,11 +83,10 @@ class App {
 		roomObj.position.set(-3.0, 0, 0); 
 		roomObj.name = 'Room';
 		scene.add(roomObj);
-			
+					
 		//patient
 		let bodyObject = addObject(	objectsParams.body.fileName, 
 									objectsParams.body.position,
-									objectsParams.body.rotation,
 									objectsParams.body.scale,
 									objectsParams.body.objName
 								);
@@ -95,8 +97,7 @@ class App {
 		//interactive elements
 		objectsParams.interactiveObjectList.forEach(element => {
 			addObject(	element.fileName, 
-						element.StartPosition,
-						element.rotation,
+						element.position,
 						element.scale,
 						element.objName
 			);
@@ -199,8 +200,13 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 		let targerObj;
 		intersections.forEach(intersect => {
 			if (intersect != undefined && intersect.object.type == 'Mesh') { 
-				//is click on body
-				if (intersect.object.parent != undefined)
+				//close popup
+				if (intersect.object.name == 'Ok' || intersect.object.name == 'Close'){
+					removeIntroPopup();
+				}
+				
+				if (intersect.object.parent != undefined){
+					//is click on body
 					if (intersect.object.parent.name == objectsParams.body.objName && 
 						objectsParams.availableObjectIndex == -1 &&
 						!objectsParams.isPopupShown){
@@ -208,20 +214,20 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 							showInroPopup();
 							objectsParams.isPopupShown = true;
 						}
-				//close popup
-				if (intersect.object.name == 'Ok' || intersect.object.name == 'Close'){
-					removeIntroPopup();
+					//moveobjects
+					objectsParams.interactiveObjectList.forEach(el => {
+						let name = el.objName;
+						if (intersect.object.parent.name == name){
+							if (el.id == objectsParams.availableObjectIndex){
+								targerObj = intersect.object.parent.parent;
+								targerObj.children[0].children.forEach(element => {
+									element.material.emissive.g = 1;
+									element.material.emissive.b = 0;
+								});
+							}
+						}
+					});
 				}
-				/*
-				movableObjectsNameList.forEach(el => {
-					if (intersect.object.parent.name == el){
-						targerObj = intersect.object.parent;
-						targerObj.children.forEach(element => {
-							element.material.emissive.b = 1;
-						});
-					}
-				});
-				*/
 			}
 		});
 		if (targerObj != undefined) {
@@ -241,27 +247,36 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 		if (controller.userData.selected != undefined){
 			let object = controller.userData.selected;
 			let currentPosition = new THREE.Vector3();
-			currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
-			//object.material.emissive.b = 0;
-			controller.remove(controller.children[2]);
-			/*
-			let dist = Math.sqrt(
-				(currentPosition.x - objectsParams.capEndPos.x) * (currentPosition.x - objectsParams.capEndPos.x) + 
-				(currentPosition.y - objectsParams.capEndPos.y) * (currentPosition.y - objectsParams.capEndPos.y) + 
-				(currentPosition.z - objectsParams.capEndPos.z) * (currentPosition.z - objectsParams.capEndPos.z)
-			);
-			console.log('dist = ', dist)
-			if (dist > 0.7)
-				object.position.copy(objectsParams.capStartPos)
-			else object.position.copy(objectsParams.capEndPos);
-			object.rotation.setFromVector3(objectsParams.capStartAngle)
-			scene.attach(object);
-*/
 			
-			//object.material.emissive.setHex(0);
-			//scene.remove(capObj);
-			//capObj = object;
-			//scene.add(capObj);
+			currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
+			controller.remove(controller.children[2]);
+			
+			let dist = Math.sqrt(
+				(currentPosition.x - objectsParams.body.position.x) * (currentPosition.x - objectsParams.body.position.x) + 
+				(currentPosition.y - objectsParams.body.position.y) * (currentPosition.y - objectsParams.body.position.y)
+			);
+			
+			if (dist > 1.0)
+				object.position.copy(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex].position)
+			else {
+				object.position.copy(objectsParams.body.position);
+				objectsParams.availableObjectIndex++;
+			}
+			scene.attach(object);			
+			scene.remove(scene.getObjectByName(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex - 1].objName));
+			let Obj = object;
+			Obj.rotation.x = Obj.rotation.y = Obj.rotation.z = 0;
+			if (dist <= 1.0 )
+				Obj.children[0].children.forEach(element => {
+					element.material.emissive.g = 0;
+					element.material.emissive.b = 0;
+				})
+			else 
+				Obj.children[0].children.forEach(element => {
+					element.material.emissive.g = 0;
+					element.material.emissive.b = 1;
+				})
+			scene.add(Obj);
 			controller.userData.selected = undefined;
 		}
       };
@@ -387,7 +402,7 @@ function render() {
 	renderer.render( scene, camera );
 }
 
-function addObject(fileName, position, rotation, scale, objName){
+function addObject(fileName, position, scale, objName){
 	let Obj = new THREE.Object3D();
 	let mtlLoader = new MTLLoader();
 	mtlLoader.setPath(objectsParams.modelPath);
@@ -408,7 +423,6 @@ function addObject(fileName, position, rotation, scale, objName){
 
 	Obj.position.copy(position);
 	Obj.scale.copy(scale);
-	Obj.rotation.setFromVector3(rotation);
 	Obj.name = objName;
 	scene.add(Obj);
 	return Obj;
