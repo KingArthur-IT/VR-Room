@@ -56686,7 +56686,7 @@
 
 	      for (let i = 0; i < 2; ++i) {
 	        const controller = renderer.xr.getController(i);
-	        controller.addEventListener('select', selectListener);
+	        //controller.addEventListener('select', selectListener);
 	        controller.addEventListener('selectstart', selectListener);
 	        controller.addEventListener('selectend', endListener);
 	        scene.add(controller);
