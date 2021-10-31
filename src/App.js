@@ -18,7 +18,7 @@ let objectsParams = {
 	body: {
 		fileName: 'Physician_01',
 		objName: 'Body',
-		position: new THREE.Vector3(-1.3, 0.0, -2.0),
+		position: new THREE.Vector3(-1.3, 0.0, -3.0),
 		rotation: new THREE.Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
 		scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 	},
@@ -27,34 +27,34 @@ let objectsParams = {
 			id: 0,
 			fileName: 'gown_01',
 			objName: 'Robe',
-			position: new THREE.Vector3(-3.5, 0.5, -4.0),
+			position: new THREE.Vector3(-3.5, 0.5, -3.0),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 		{
 			id: 1,
 			fileName: 'mask_01',
 			objName: 'Mask',
-			position: new THREE.Vector3(-0.15, 1.05, -4.4),
+			position: new THREE.Vector3(-0.15, 1.05, -2.0),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 		{
 			id: 2,
 			fileName: 'eye protection_01',
 			objName: 'Glasses',
-			position: new THREE.Vector3(1.0, -1.2, -3.3),
+			position: new THREE.Vector3(1.0, -1.2, -2.9),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 		{
 			id: 3,
 			fileName: 'gloves_01',
 			objName: 'Gloves',
-			position: new THREE.Vector3(-2.1, 2.0, -4.0),
+			position: new THREE.Vector3(-2.1, 2.0, -2.9),
 			scale: 	  new THREE.Vector3(0.2, 0.2, 0.2),
 		},
 	],	
 	availableObjectIndex: -1, //-1 is for body
 	isPopupShown: false,
-	distanceOffset: 1.0
+	distanceOffset: 2.0
 };
 
 class App {
@@ -86,14 +86,11 @@ class App {
 		scene.add(roomObj);
 				
 		//patient
-		let bodyObject = addObject(	objectsParams.body.fileName, 
+		addObject(	objectsParams.body.fileName, 
 									objectsParams.body.position,
 									objectsParams.body.scale,
 									objectsParams.body.objName
 								);
-		setTimeout(() => {
-			console.log(bodyObject.children[0])
-		}, 2000);
 		
 		//interactive elements
 		objectsParams.interactiveObjectList.forEach(element => {
@@ -189,7 +186,7 @@ class ControllerPickHelper extends THREE.EventDispatcher {
         if (selectedObject) {
           this.dispatchEvent({type: event.type, controller, selectedObject});
         }
-		console.log('click', event)
+		//console.log('click', event)
 		if (event.type != 'selectstart')
 			return;
 
@@ -207,7 +204,6 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 				if (intersect.object.name == 'Ok' || intersect.object.name == 'Close'){
 					removePopup();
 				}
-				
 				if (intersect.object.parent != undefined){
 					//is click on body
 					if (intersect.object.parent.name == objectsParams.body.objName && 
@@ -220,17 +216,13 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 					//moveobjects
 					objectsParams.interactiveObjectList.forEach(el => {
 						let name = el.objName;
-						if (intersect.object.parent.name == name){
-							if (el.id == objectsParams.availableObjectIndex){
-								targerObj = intersect.object.parent.parent;
-								targerObj.children[0].children.forEach(element => {
-									element.material.emissive.g = 1;
-									element.material.emissive.b = 0;
-								});
-							}
-							else {
-								showIncorrectPopup();								
-							}
+						let elementId = getObjectId(name);
+						if (intersect.object.parent.name == name && elementId >= objectsParams.availableObjectIndex){
+							targerObj = intersect.object.parent.parent;
+							targerObj.children[0].children.forEach(element => {
+								element.material.emissive.g = 1;
+								element.material.emissive.b = 0;
+							});
 						}
 					});
 				}
@@ -251,10 +243,37 @@ class ControllerPickHelper extends THREE.EventDispatcher {
 		if (controller.userData.selected != undefined){
 			let object = controller.userData.selected;
 			let currentPosition = new THREE.Vector3();
-			
 			currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
 			controller.remove(controller.children[2]);
+
+			//find id of the selected object
+			let elementId = getObjectId(object.name);
+			//if selected obj is not available to put on
+			if (elementId != objectsParams.availableObjectIndex){
+				if (elementId == -1)
+						object.position.copy(objectsParams.body.position);
+				else	object.position.copy(objectsParams.interactiveObjectList[elementId].position);
+				scene.attach(object);			
+				scene.remove(scene.getObjectByName(object.name));
+				let Obj = object;
+				Obj.rotation.x = Obj.rotation.y = Obj.rotation.z = 0;
+				if (objectsParams.availableObjectIndex == -1 )
+					Obj.children[0].children.forEach(element => {
+						element.material.emissive.g = 0;
+						element.material.emissive.b = 0;
+					})
+				else 
+					Obj.children[0].children.forEach(element => {
+						element.material.emissive.g = 0;
+						element.material.emissive.b = 1;
+					})
+				scene.add(Obj);
+				controller.userData.selected = undefined;
+				showIncorrectPopup();	
+				return;							
+			}
 			
+			//if selected obj is available to put on
 			let dist = Math.sqrt(
 				(currentPosition.x - objectsParams.body.position.x) * (currentPosition.x - objectsParams.body.position.x) + 
 				(currentPosition.y - objectsParams.body.position.y) * (currentPosition.y - objectsParams.body.position.y)
@@ -389,6 +408,15 @@ function animate() {
 function render() {
 	pickHelper.update(scene);
 	renderer.render( scene, camera );
+}
+
+function getObjectId(objName){
+	let elementId = -1;
+	objectsParams.interactiveObjectList.forEach(element => {
+		if (element.objName == objName)
+			elementId = element.id;
+	});
+	return elementId;
 }
 
 function addObject(fileName, position, scale, objName){
