@@ -56383,6 +56383,13 @@
 	let controllerGrip1, controllerGrip2;
 	let pickHelper;
 
+	let attached = {
+		isAttach: false,
+		controller: null,
+		distance: -1,
+		x_real: -1
+	};
+
 	let hoverObjectsList = ['Ok', 'Close'];  
 	let lastChooseObj = [undefined, undefined];
 
@@ -56391,37 +56398,59 @@
 		body: {
 			fileName: 'Physician_01',
 			objName: 'Body',
-			position: new Vector3(-1.3, 0.0, -3.0),
+			position: new Vector3(-2.0, 0.0, -1.0),
 			rotation: new Vector3(Math.PI * 0.0, Math.PI * 0.0, Math.PI * 0.0),
 			scale: 	  new Vector3(0.2, 0.2, 0.2),
 		},
+		clonesObjectList: [
+			{
+				id: 0,
+				fileName: 'gown_01',
+				objName: 'RobeClone'
+			},
+			{
+				id: 1,
+				fileName: 'mask_01',
+				objName: 'MaskClone'
+			},
+			{
+				id: 2,
+				fileName: 'eye protection_01',
+				objName: 'GlassesClone'
+			},
+			{
+				id: 3,
+				fileName: 'gloves_01',
+				objName: 'GlovesClone'
+			},
+		],	
 		interactiveObjectList: [
 			{
 				id: 0,
 				fileName: 'gown_01',
 				objName: 'Robe',
-				position: new Vector3(-3.5, 0.5, -3.0),
+				position: new Vector3(-4.0, 0.5, -1.8),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 			{
 				id: 1,
 				fileName: 'mask_01',
 				objName: 'Mask',
-				position: new Vector3(-0.15, 1.05, -2.0),
+				position: new Vector3(-0.5, -1.0, -1.3),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 			{
 				id: 2,
 				fileName: 'eye protection_01',
 				objName: 'Glasses',
-				position: new Vector3(1.0, -1.2, -2.9),
+				position: new Vector3(0, -1.2, -1.4),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 			{
 				id: 3,
 				fileName: 'gloves_01',
 				objName: 'Gloves',
-				position: new Vector3(-2.1, 2.0, -2.9),
+				position: new Vector3(-3.0, 2.0, -2.1),
 				scale: 	  new Vector3(0.2, 0.2, 0.2),
 			},
 		],	
@@ -56454,7 +56483,7 @@
 				}
 			);
 			roomObj.scale.set(0.08, 0.08, 0.08);
-			roomObj.position.set(-3.0, 0, 0); 
+			roomObj.position.set(-4.0, 0, 2); 
 			roomObj.name = 'Room';
 			scene.add(roomObj);
 					
@@ -56471,6 +56500,14 @@
 							element.position,
 							element.scale,
 							element.objName
+				);
+			});
+			objectsParams.clonesObjectList.forEach(element => {
+				addObject(	element.fileName, 
+							objectsParams.body.position,
+							objectsParams.body.scale,
+							element.objName,
+							false
 				);
 			});
 
@@ -56591,6 +56628,12 @@
 							let name = el.objName;
 							let elementId = getObjectId(name);
 							if (intersect.object.parent.name == name && elementId >= objectsParams.availableObjectIndex){
+								//intersect.object.parent.parent.position.z = -0.8;
+								attached.isAttach = true;
+								attached.distance = intersect.distance;
+								attached.controller = controller;
+
+								console.log(intersect);
 								targerObj = intersect.object.parent.parent;
 								targerObj.children[0].children.forEach(element => {
 									element.material.emissive.g = 1;
@@ -56614,10 +56657,15 @@
 	        this.dispatchEvent({type: event.type, controller});
 			
 			if (controller.userData.selected != undefined){
-				let object = controller.userData.selected;
+				let object = controller.userData.selected; 
 				let currentPosition = new Vector3();
 				currentPosition.setFromMatrixPosition(controller.children[2].matrixWorld);
 				controller.remove(controller.children[2]);
+				attached.isAttach = false;
+				attached.controller = null;
+				object.visible = true;
+				let cloneWasVisible = scene.getObjectByName(object.name + 'Clone').visible;
+				scene.getObjectByName(object.name + 'Clone').visible = false;
 
 				//find id of the selected object
 				let elementId = getObjectId(object.name);
@@ -56647,12 +56695,13 @@
 				}
 				
 				//if selected obj is available to put on
+				/*
 				let dist = Math.sqrt(
 					(currentPosition.x - objectsParams.body.position.x) * (currentPosition.x - objectsParams.body.position.x) + 
 					(currentPosition.y - objectsParams.body.position.y) * (currentPosition.y - objectsParams.body.position.y)
 				);
-				
-				if (dist > objectsParams.distanceOffset)
+				*/
+				if (!cloneWasVisible)
 					object.position.copy(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex].position);
 				else {
 					object.position.copy(objectsParams.body.position);
@@ -56661,7 +56710,7 @@
 				scene.remove(scene.getObjectByName(objectsParams.interactiveObjectList[objectsParams.availableObjectIndex].objName));
 				let Obj = object;
 				Obj.rotation.x = Obj.rotation.y = Obj.rotation.z = 0;
-				if (dist <= objectsParams.distanceOffset )
+				if (cloneWasVisible )
 					Obj.children[0].children.forEach(element => {
 						element.material.emissive.g = 0;
 						element.material.emissive.b = 0;
@@ -56674,7 +56723,7 @@
 				scene.add(Obj);
 				controller.userData.selected = undefined;
 
-				if (dist <= objectsParams.distanceOffset)
+				if (cloneWasVisible)
 					objectsParams.availableObjectIndex++;
 				if (objectsParams.availableObjectIndex == objectsParams.interactiveObjectList.length)
 					setTimeout(() => {
@@ -56692,7 +56741,7 @@
 	        scene.add(controller);
 
 	        const line = new Line(pointerGeometry);
-	        line.scale.z = 5;
+	        line.scale.z = 20;
 	        controller.add(line);
 	        this.controllers.push({controller, line});
 	      }
@@ -56718,7 +56767,7 @@
 	        this.raycaster.ray.direction.set(0, 0, -1).applyMatrix4(this.tempMatrix);
 
 	        const intersections = this.raycaster.intersectObjects(scene.children);
-			line.scale.z = 5;
+			line.scale.z = 20;
 			
 			//hover
 			intersections.forEach(intersect => {
@@ -56779,6 +56828,29 @@
 	}
 
 	function render() {
+		if (attached.isAttach){
+			let objectName = attached.controller.userData.selected.name;
+			scene.getObjectByName(objectName).updateMatrixWorld();
+			let position = new Vector3();
+			let scale = new Vector3();
+			let quaternion = new Quaternion();
+			let rotation = new Euler();
+			scene.getObjectByName(objectName).matrixWorld.decompose(position, quaternion, scale);
+			rotation.setFromQuaternion(quaternion);
+
+			attached.x_real = position.x - rotation.y * attached.distance;
+			if (attached.x_real < -1 && attached.x_real > -2){
+				scene.getObjectByName(objectName).visible = false;
+				scene.getObjectByName(objectName + 'Clone').visible = true;
+			}
+			else {
+				scene.getObjectByName(objectName).visible = true;
+				scene.getObjectByName(objectName + 'Clone').visible = false;
+			}
+
+			console.log(attached.x_real);
+		}
+
 		pickHelper.update(scene);
 		renderer.render( scene, camera );
 	}
@@ -56792,7 +56864,7 @@
 		return elementId;
 	}
 
-	function addObject(fileName, position, scale, objName){
+	function addObject(fileName, position, scale, objName, visible = true){
 		let Obj = new Object3D();
 		let mtlLoader = new MTLLoader();
 		mtlLoader.setPath(objectsParams.modelPath);
@@ -56808,12 +56880,18 @@
 					object.children.forEach(element => {
 						element.material.emissive.b = 1;
 					});
+				if (String(objName).includes('Clone'))
+					object.children.forEach(element => {
+						element.material.emissive.g = 1;
+					});
+				
 			});
 		});
 
 		Obj.position.copy(position);
 		Obj.scale.copy(scale);
 		Obj.name = objName;
+		Obj.visible = visible;
 		scene.add(Obj);
 		return Obj;
 	}
