@@ -4,6 +4,7 @@ import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerM
 import { MTLLoader } from 'three/examples/jsm/loaders/MTLLoader';
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader';
+import ThreeMeshUI from "three-mesh-ui";
 
 let camera, scene, renderer;
 let controller1, controller2;
@@ -147,6 +148,8 @@ class App {
 		document.body.appendChild( renderer.domElement );
 		document.body.appendChild( VRButton.createButton( renderer ) );
 
+		makeUI();
+
 		// controllers
 		function onSelectStart() {
 			this.userData.isSelecting = true;
@@ -197,9 +200,68 @@ class App {
 
 		pickHelper = new ControllerPickHelper(scene);
 
-		animate();
+		renderer.setAnimationLoop(animate);
+		//animate();
 	}
 }
+
+function makeUI() {
+	const container = new ThreeMeshUI.Block({
+	  height: 1.5,
+	  width: 1,
+	  backgroundOpacity: 0,
+	});
+  
+	container.position.set(0, 1, -1.8);
+	//container.rotation.x = -0.55;
+	scene.add(container);
+  
+	const imageBlock = new ThreeMeshUI.Block({
+	  height: 1,
+	  width: 1,
+	});  
+	const textBlock = new ThreeMeshUI.Block({
+	  height: 0.6,
+	  width: 1.5,
+	  margin: 0.05,
+	});  
+	container.add(imageBlock, textBlock);
+  
+	const loader = new THREE.TextureLoader();  
+	loader.load("./assets/viper.jpg", (texture) => {
+	  imageBlock.set({ backgroundTexture: texture });
+	});  
+	container.set({
+	  fontFamily: "./assets/Roboto-msdf.json",
+	  fontTexture: "./assets/Roboto-msdf.png",
+	});
+  
+	const text = new ThreeMeshUI.Text({
+	  content:
+		"Lorem ipsum dolor sit amet consectetur adipisicing elit. Unde quis tempora officia excepturi similique, a, veniam distinctio corrupti ad esse amet architecto suscipit optio earum laudantium illum fuga? Quia, enim!",
+	});
+  
+	textBlock.add(text);
+  
+	text.set({
+	  fontColor: new THREE.Color(0xd2ffbd),
+	  fontSize: 0.06,
+	});
+  
+	textBlock.set({
+	  alignContent: "right",
+	  justifyContent: "end",
+	  padding: 0.03,
+	});
+  
+	textBlock.add(
+	  new ThreeMeshUI.Text({
+		content: " Mind your fingers.",
+		fontSize: 0.07,
+		fontColor: new THREE.Color(0xefffe8),
+	  })
+	);
+  }
 
 class ControllerPickHelper extends THREE.EventDispatcher {
     constructor(scene) {
@@ -451,6 +513,7 @@ function buildController( data, name ) {
 }
 
 function animate() {	
+	ThreeMeshUI.update();
 	renderer.setAnimationLoop( render );
 }
 
